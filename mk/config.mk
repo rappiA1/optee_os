@@ -693,3 +693,6 @@ ifeq (,$(CFG_HWRNG_QUALITY))
 $(error CFG_HWRNG_QUALITY not defined)
 endif
 endif
+
+# activates uart testPTA
+CFG_TEST_PTA ?= y
