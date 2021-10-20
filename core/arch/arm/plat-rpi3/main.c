@@ -39,9 +39,22 @@ register_phys_mem_pgdir(MEM_AREA_IO_NSEC,
 
 static struct serial8250_uart_data console_data;
 
+static struct serial8250_uart_data uart1;
+
 void console_init(void)
 {
+	int i = 0;
+	
 	serial8250_uart_init(&console_data, CONSOLE_UART_BASE,
 			     CONSOLE_UART_CLK_IN_HZ, CONSOLE_BAUDRATE);
 	register_serial_console(&console_data.chip);
+
+	/* Initialize second UART */
+	serial8250_uart_init(&uart1, UART1_BASE,
+			UART1_CL_IN_HZ, UART1_BAUDRATE);
+	
+	for(i = 0; i < 20; i++){
+		uart1.chip.ops->putc(&uart1.chip, 65);
+	}	
+
 }

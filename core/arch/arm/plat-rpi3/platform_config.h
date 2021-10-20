@@ -45,6 +45,11 @@
 #define CONSOLE_BAUDRATE	115200
 #define CONSOLE_UART_CLK_IN_HZ	19200000
 
+/* Pl011 UART */
+#define UART1_BASE		0x3f201000 /* UART1 */
+#define UART1_BAUDRATE		115200
+#define UART1_CL_IN_HZ		19200000
+
 /*
  * RPi memory map
  *
