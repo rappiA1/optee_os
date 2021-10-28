@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 /*
- * Copyright (c) 2019, Linaro Limited
+ * Copyright (c) 2019-2021, Linaro Limited
  */
 
 #include <assert.h>
@@ -31,21 +31,19 @@ void thread_handle_fast_smc(struct thread_smc_args *args)
 {
 	thread_check_canaries();
 
-#ifdef CFG_VIRTUALIZATION
-	if (!virt_set_guest(args->a7)) {
+	if (IS_ENABLED(CFG_VIRTUALIZATION) &&
+	    virt_set_guest(args->a7)) {
 		args->a0 = OPTEE_SMC_RETURN_ENOTAVAIL;
 		goto out;
 	}
-#endif
 
 	tee_entry_fast(args);
 
-#ifdef CFG_VIRTUALIZATION
-	virt_unset_guest();
-#endif
-	/* Fast handlers must not unmask any exceptions */
+	if (IS_ENABLED(CFG_VIRTUALIZATION))
+		virt_unset_guest();
+
 out:
-	__maybe_unused;
+	/* Fast handlers must not unmask any exceptions */
 	assert(thread_get_exceptions() == THREAD_EXCP_ALL);
 }
 
@@ -57,10 +55,8 @@ uint32_t thread_handle_std_smc(uint32_t a0, uint32_t a1, uint32_t a2,
 
 	thread_check_canaries();
 
-#ifdef CFG_VIRTUALIZATION
-	if (!virt_set_guest(a7))
+	if (IS_ENABLED(CFG_VIRTUALIZATION) && virt_set_guest(a7))
 		return OPTEE_SMC_RETURN_ENOTAVAIL;
-#endif
 
 	/*
 	 * thread_resume_from_rpc() and thread_alloc_and_run() only return
@@ -75,9 +71,8 @@ uint32_t thread_handle_std_smc(uint32_t a0, uint32_t a1, uint32_t a2,
 		rv = OPTEE_SMC_RETURN_ETHREAD_LIMIT;
 	}
 
-#ifdef CFG_VIRTUALIZATION
-	virt_unset_guest();
-#endif
+	if (IS_ENABLED(CFG_VIRTUALIZATION))
+		virt_unset_guest();
 
 	return rv;
 }
@@ -184,7 +179,7 @@ static uint32_t std_smc_entry(uint32_t a0, uint32_t a1, uint32_t a2,
 		mobj = map_cmd_buffer(parg, &num_params);
 	}
 
-	if (!mobj || !ALIGNMENT_IS_OK(parg, struct optee_msg_arg)) {
+	if (!mobj || !IS_ALIGNED_WITH_TYPE(parg, struct optee_msg_arg)) {
 		EMSG("Bad arg address 0x%" PRIxPA, parg);
 		mobj_put(mobj);
 		return OPTEE_SMC_RETURN_EBADADDR;
@@ -210,9 +205,9 @@ uint32_t __weak __thread_std_smc_entry(uint32_t a0, uint32_t a1, uint32_t a2,
 {
 	uint32_t rv = 0;
 
-#ifdef CFG_VIRTUALIZATION
-	virt_on_stdcall();
-#endif
+	if (IS_ENABLED(CFG_VIRTUALIZATION))
+		virt_on_stdcall();
+
 	rv = std_smc_entry(a0, a1, a2, a3);
 
 	if (rv == OPTEE_SMC_RETURN_OK) {
@@ -330,7 +325,7 @@ static struct mobj *thread_rpc_alloc_arg(size_t size)
 	/* Registers 4 and 5 passed from normal world */
 	co = reg_pair_to_64(rpc_args[2], rpc_args[3]);
 
-	if (!ALIGNMENT_IS_OK(pa, struct optee_msg_arg))
+	if (!IS_ALIGNED_WITH_TYPE(pa, struct optee_msg_arg))
 		goto err;
 
 	mobj = rpc_shm_mobj_alloc(pa, size, co);

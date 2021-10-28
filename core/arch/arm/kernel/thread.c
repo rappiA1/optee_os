@@ -851,9 +851,8 @@ void thread_state_free(void)
 	threads[ct].flags = 0;
 	l->curr_thread = THREAD_ID_INVALID;
 
-#ifdef CFG_VIRTUALIZATION
-	virt_unset_guest();
-#endif
+	if (IS_ENABLED(CFG_VIRTUALIZATION))
+		virt_unset_guest();
 	thread_unlock_global();
 }
 
@@ -923,9 +922,8 @@ int thread_state_suspend(uint32_t flags, uint32_t cpsr, vaddr_t pc)
 
 	l->curr_thread = THREAD_ID_INVALID;
 
-#ifdef CFG_VIRTUALIZATION
-	virt_unset_guest();
-#endif
+	if (IS_ENABLED(CFG_VIRTUALIZATION))
+		virt_unset_guest();
 
 	thread_unlock_global();
 
@@ -1680,7 +1678,7 @@ void *thread_rpc_shm_cache_alloc(enum thread_shm_cache_user user,
 		if (mobj_get_pa(ce->mobj, 0, 0, &p))
 			goto err;
 
-		if (!ALIGNMENT_IS_OK(p, uint64_t))
+		if (!IS_ALIGNED_WITH_TYPE(p, uint64_t))
 			goto err;
 
 		va = mobj_get_va(ce->mobj, 0);
