@@ -82,7 +82,7 @@ static void i2c_fill_txfifo(struct i2c_regs *regs,
 			break;
 
 		/* write 8 bit value from buffer into fifo. */
-		io_write32((vaddr_t)&regs->i2c_fifo, *i2c_operation->buffer;
+		io_write32((vaddr_t)&regs->i2c_fifo, *i2c_operation->buffer);
 
 		/* increment pointer buffer by one byte, decrease the number of bytes to be read */
 		i2c_operation->buffer++;
