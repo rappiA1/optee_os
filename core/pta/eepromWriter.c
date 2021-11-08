@@ -19,8 +19,6 @@
 	{0x2b6ea7b2, 0xaf6a, 0x4387, \
 		{0xaa, 0xa7, 0x4c, 0xef, 0xcc, 0x4a, 0xfc, 0xbd}}
 
-#define EEPROM_ADDRESS_LENGTH 		2
-
 static struct bcm2835_i2c_data i2c_data;
 
 /*
@@ -57,11 +55,10 @@ static TEE_Result read_from_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PAR
 
 	/* write the address we want to read from to the EEPROM -> see 24LC256 documentation */
 	operation.flags = I2C_FLAG_WRITE;
-	operation.length_in_bytes = EEPROM_ADDRESS_LENGTH;
+	operation.length_in_bytes = params[0].memref.size;
 	operation.buffer = params[0].memref.buffer;
 
-	res = i2c_bus_xfer(i2c_data.base, params[1].value.a, operation,
-			params[0].memref.size);
+	res = i2c_bus_xfer(i2c_data.base, params[2].value.a, operation, 1);
 
 	if (res != 0)
 		return res;
@@ -71,7 +68,7 @@ static TEE_Result read_from_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PAR
 	operation.length_in_bytes = params[1].memref.size;
 	operation.buffer = params[1].memref.buffer;
 
-	return res = i2c_bus_xfer(i2c_data.base, params[2].value.a, operation, 1);
+	return i2c_bus_xfer(i2c_data.base, params[2].value.a, operation, 1);
 }
 
 /*
@@ -97,12 +94,13 @@ static TEE_Result write_to_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PARA
 	struct i2c_operation operation;
 	operation.flags = I2C_FLAG_WRITE;
 	operation.length_in_bytes = params[0].memref.size;
+
+	/* The buffer contains the Data and the address onto which we write on the EEPROM */
 	operation.buffer = params[0].memref.buffer;
 
 	/*
 	 * Perform write operation.
-	 
-	 * Do we have to take care of the ACK from the EEPROM?
+	 * 	 
 	 * for now only we perform only one operation -> hardcoded
 	 */
 	return i2c_bus_xfer(i2c_data.base, params[1].value.a, operation, 1);

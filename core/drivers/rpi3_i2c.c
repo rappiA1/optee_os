@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-2-Clause
 /*
- * 
- *
  * I2C driver for BCM 2835 and similar
+ *
+ * Author: Raphael Andree
  *
  */
 #include <assert.h>
@@ -153,6 +153,9 @@ static TEE_Result i2c_write(uint32_t c_reg_flags, struct i2c_regs *regs,
 			io_clrbit32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
 			return TEE_SUCCESS;
 		}
+		else if (s_reg & I2C_S_ERR){
+			return TEE_ERROR_GENERIC;
+		}
 	}
 }
 
@@ -193,14 +196,17 @@ static TEE_Result i2c_read(uint32_t c_reg_flags, struct i2c_regs *regs,
 			i2c_drain_rxfifo(regs, i2c_operation);
 		}
 		else if (s_reg & I2C_S_DONE){
-			i2c_drin_rxfifo(regs, i2c_operation);
+			i2c_drain_rxfifo(regs, i2c_operation);
 
 			/* reset done flag */
 			io_clrbit32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
 			return TEE_SUCCESS;
 		}
+		/* check for ACK error */
+		else if (s_reg & I2C_S_ERR){
+			return TEE_ERROR_GENERIC;
+		}
 	}
-
 }
 
 /*
