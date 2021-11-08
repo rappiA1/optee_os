@@ -725,3 +725,6 @@ CFG_DRIVERS_CLK_FIXED ?= $(CFG_DRIVERS_CLK_DT)
 
 $(eval $(call cfg-depends-all,CFG_DRIVERS_CLK_DT,CFG_DRIVERS_CLK CFG_DT))
 $(eval $(call cfg-depends-all,CFG_DRIVERS_CLK_FIXED,CFG_DRIVERS_CLK_DT))
+
+# build with eepromWriter PTA
+CFG_EEPROMWRITER_PTA ?= y

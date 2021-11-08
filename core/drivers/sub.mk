@@ -7,7 +7,6 @@ srcs-$(CFG_PL061) += pl061_gpio.c
 srcs-$(CFG_PL022) += pl022_spi.c
 srcs-$(CFG_SP805_WDT) += sp805_wdt.c
 srcs-$(CFG_8250_UART) += serial8250_uart.c
-srcs-$(CFG_CFG_RPI3_I2C) += rpi3_i2c.c
 srcs-$(CFG_16550_UART) += ns16550.c
 srcs-$(CFG_IMX_SNVS) += imx_snvs.c
 srcs-$(CFG_IMX_UART) += imx_uart.c
@@ -38,6 +37,7 @@ srcs-$(CFG_LS_GPIO) += ls_gpio.c
 srcs-$(CFG_LS_DSPI) += ls_dspi.c
 srcs-$(CFG_IMX_RNGB) += imx_rngb.c
 srcs-$(CFG_IMX_OCOTP) += imx_ocotp.c
+srcs-$(CFG_RPI3_I2C) += rpi3_i2c.c
 
 subdirs-y += crypto
 subdirs-$(CFG_BNXT_FW) += bnxt
