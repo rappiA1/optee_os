@@ -104,10 +104,12 @@ static TEE_Result write_to_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PARA
 	 * for now only we perform only one operation -> hardcoded
 	 */
 	return i2c_bus_xfer(i2c_data.base, params[1].value.a, operation, 1);
-
 }
 
 
+/*
+ * Redirects the command from the Client Application to the correct function
+ */
 static TEE_Result invoke_command(void *psess __unused, uint32_t cmd,
 		uint32_t ptypes,
 		TEE_PARAMS params[TEE_NUM_PARAMS])
@@ -118,7 +120,7 @@ static TEE_Result invoke_command(void *psess __unused, uint32_t cmd,
 		case PTA_CMD_WRITE:
 			return write_to_eeprom(ptypes, params);
 		case PTA_CMD_INIT:
-			return init_controller(ptypes, params);
+			return init_controller();
 		default:
 			break;
 	}
