@@ -75,7 +75,7 @@ static void i2c_fill_txfifo(struct i2c_regs *regs,
 	uint32_t val;
 
 	while (i2c_operation->length_in_bytes) {
-		val = io_read32((vaddr_t)&regs->i2c_s;
+		val = io_read32((vaddr_t)&regs->i2c_s);
 
 		/* check if FIFO can accept data. */
 		if(!(val & I2C_S_TXD))
@@ -101,9 +101,9 @@ static void i2c_drain_rxfifo(struct i2c_regs *regs,
 	uint32_t val;
 
 	/* while not all data is read */
-	while (i2c_operation->lentgth_in_bytes){
+	while (i2c_operation->length_in_bytes){
 
-		val = io_read32((vaddr_t)&regs->i2c_s;
+		val = io_read32((vaddr_t)&regs->i2c_s);
 
 		/* check if FIFO still contains data */
 		if (!(val & I2C_S_RXD))
@@ -125,6 +125,8 @@ static TEE_Result i2c_write(uint32_t c_reg_flags, struct i2c_regs *regs,
 		struct i2c_operation *i2c_operation,
 		unsigned int slave_address)
 {
+	uint32_t s_reg;
+
 	/* write slave address into address register. */
 	io_write32((vaddr_t)&regs->i2c_a, slave_address);
 
@@ -135,7 +137,7 @@ static TEE_Result i2c_write(uint32_t c_reg_flags, struct i2c_regs *regs,
 	io_clrbits32((vaddr_t)&regs->i2c_c, I2C_C_READ);
 
 	/* activate BSC, start transfer */
-	io_setbits32((vaddr_t)&regs->i2c_c, c);
+	io_setbits32((vaddr_t)&regs->i2c_c, c_reg_flags);
 
 	/* do polling on TXW and DONE in status register to check if you
 	 * need to write to the fifo.
@@ -150,7 +152,7 @@ static TEE_Result i2c_write(uint32_t c_reg_flags, struct i2c_regs *regs,
 		}
 		else if (s_reg & I2C_S_DONE){
 			/* reset done flag */
-			io_clrbit32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
+			io_clrbits32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
 			return TEE_SUCCESS;
 		}
 		else if (s_reg & I2C_S_ERR){
@@ -172,7 +174,8 @@ static TEE_Result i2c_read(uint32_t c_reg_flags, struct i2c_regs *regs,
 		struct i2c_operation *i2c_operation,
 		unsigned int slave_address)
 {
-	C_reg_flags |= I2C_C_READ;
+	uint32_t s_reg;
+	c_reg_flags |= I2C_C_READ;
 	
 	/*
 	 * write slave address into address register, only 7 least significant
@@ -192,14 +195,14 @@ static TEE_Result i2c_read(uint32_t c_reg_flags, struct i2c_regs *regs,
 	 */
 	while (1){
 		s_reg = io_read32((vaddr_t)&regs->i2c_s);
-		if (s_reg & I2c_S_RXR){
+		if (s_reg & I2C_S_RXR){
 			i2c_drain_rxfifo(regs, i2c_operation);
 		}
 		else if (s_reg & I2C_S_DONE){
 			i2c_drain_rxfifo(regs, i2c_operation);
 
 			/* reset done flag */
-			io_clrbit32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
+			io_clrbits32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
 			return TEE_SUCCESS;
 		}
 		/* check for ACK error */
@@ -216,10 +219,10 @@ static TEE_Result i2c_read(uint32_t c_reg_flags, struct i2c_regs *regs,
  * slave_address	address of I2C slave.
  */
 static TEE_Result i2c_start_transfer(struct i2c_regs *regs,
-		struct i2c_operation *i2c_operation
+		struct i2c_operation *i2c_operation,
 		unsigned int slave_address)
 {
-	uint32_t c = I2C_C_ST | I2C_C_I2EN;
+	uint32_t c = I2C_C_ST | I2C_C_I2CEN;
 
 	if (i2c_operation->flags & I2C_FLAG_READ)
 		return i2c_read(c, regs, i2c_operation, slave_address);
@@ -230,13 +233,13 @@ static TEE_Result i2c_start_transfer(struct i2c_regs *regs,
 /*
  * transfer data to/from the I2C slave device.
  */
-TEE_Result i2c_bus_xfer(vaddr_t base, unsigned int slave_address,
+TEE_Result i2c_bus_xfer(vaddr_t base, uint32_t slave_address,
 			struct i2c_operation *i2c_operation,
 			unsigned int operation_count)
 {
 	unsigned int n = 0;
 	struct i2c_regs *regs = (struct i2c_regs *)base;
-	struct i2c_operation operation = NULL;
+	struct i2c_operation *operation = NULL;
 	TEE_Result res = TEE_ERROR_GENERIC;
 
 	/* check that there is no read operation before the last operation */
@@ -262,6 +265,4 @@ out:
 	i2c_stop(regs);
 
 	return res;
-	}
-
 }

@@ -59,11 +59,11 @@
 
 /* BSC status register bits, more info in bcm2835 peripherals documentation */
 #define I2C_S_CLKT U(0x00000200)
-#define I2C_S_ERR  U(0x00000100)
+#define I2C_S_ERR U(0x00000100)
 #define I2C_S_RXD U(0x00000020)
 #define I2C_S_TXD U(0x00000010)
 #define I2C_S_RXR U(0x00000008)
-#define I2c_S_TXW U(0x00000004)
+#define I2C_S_TXW U(0x00000004)
 #define I2C_S_DONE U(0x00000002)
 
 /* defines for flag in operation struct. */
@@ -161,7 +161,7 @@ void i2c_reset(vaddr_t base);
  * operation_count	Number of operations
  */
 TEE_Result i2c_bus_xfer(vaddr_t base, uint32_t slave_address,
-		struct i2c_operation,
+		struct i2c_operation *i2c_operation,
 		unsigned int operation_count);
 
 #endif /* __DRIVERS_BCM_I2C_H */

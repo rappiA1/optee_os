@@ -15,7 +15,7 @@
 #define PTA_CMD_WRITE	1
 #define PTA_CMD_INIT	2
 
-#define EPW_UUID \ 
+#define EPW_UUID \
 	{0x2b6ea7b2, 0xaf6a, 0x4387, \
 		{0xaa, 0xa7, 0x4c, 0xef, 0xcc, 0x4a, 0xfc, 0xbd}}
 
@@ -25,7 +25,8 @@ static struct bcm2835_i2c_data i2c_data;
  * Initializes i2c controller, the controller base address
  * gets written into the static i2c_data struct.
  */
-static TEE_Result init_controller(){
+static TEE_Result init_controller(void)
+{
 	return i2c_init(&i2c_data);
 }
 
@@ -39,7 +40,7 @@ static TEE_Result init_controller(){
  * 			is written into after the read process.
  * params[2]		32-Bit integer that contains the slave address.
  */
-static TEE_Result read_from_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PARAMS])
+static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_PARAMS])
 {
 	if (paramTypes !=
 			TEE_PARAM_TYPES(
@@ -50,7 +51,7 @@ static TEE_Result read_from_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PAR
 	{
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
-	TEE_RESULT res;
+	TEE_Result res;
 	struct i2c_operation operation;
 
 	/* write the address we want to read from to the EEPROM -> see 24LC256 documentation */
@@ -58,7 +59,7 @@ static TEE_Result read_from_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PAR
 	operation.length_in_bytes = params[0].memref.size;
 	operation.buffer = params[0].memref.buffer;
 
-	res = i2c_bus_xfer(i2c_data.base, params[2].value.a, operation, 1);
+	res = i2c_bus_xfer(i2c_data.base, params[2].value.a, &operation, 1);
 
 	if (res != 0)
 		return res;
@@ -68,7 +69,7 @@ static TEE_Result read_from_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PAR
 	operation.length_in_bytes = params[1].memref.size;
 	operation.buffer = params[1].memref.buffer;
 
-	return i2c_bus_xfer(i2c_data.base, params[2].value.a, operation, 1);
+	return i2c_bus_xfer(i2c_data.base, params[2].value.a, &operation, 1);
 }
 
 /*
@@ -78,7 +79,7 @@ static TEE_Result read_from_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PAR
  * 			EEPROM
  * params[1]		32-Bit integer that contains the slave address (HW-address of EEPROM)
  */
-static TEE_Result write_to_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PARAMS])
+static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_PARAMS])
 
 {
 	if (paramTypes !=
@@ -103,7 +104,7 @@ static TEE_Result write_to_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PARA
 	 * 	 
 	 * for now only we perform only one operation -> hardcoded
 	 */
-	return i2c_bus_xfer(i2c_data.base, params[1].value.a, operation, 1);
+	return i2c_bus_xfer(i2c_data.base, params[1].value.a, &operation, 1);
 }
 
 
@@ -112,7 +113,7 @@ static TEE_Result write_to_eeprom(uint32_t ptypes, TEE_PARAM params[TEE_NUM_PARA
  */
 static TEE_Result invoke_command(void *psess __unused, uint32_t cmd,
 		uint32_t ptypes,
-		TEE_PARAMS params[TEE_NUM_PARAMS])
+		TEE_Param params[TEE_NUM_PARAMS])
 {
 	switch(cmd){
 		case PTA_CMD_READ:
