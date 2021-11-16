@@ -37,14 +37,17 @@ void i2c_reset(vaddr_t base)
  */
 TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 {
+	EMSG("Inside i2c_init\n");
 	/* 
 	 * searching BSC base address in device tree omitted, use hardcoded
 	 * BSC0 base address for now.
 	 * does dt_map_dev has to be called?, normally mapping is done 
 	 * automatically.
 	 */
-	vaddr_t ctrl_base = BSC0_BASE;
-
+	struct io_pa_va base_reg = { .pa = BSC0_BASE };
+	DMSG("%x\n", BSC0_BASE);
+	vaddr_t ctrl_base = io_pa_or_va(&base_reg, 32); 
+	DMSG("mapped address%x\n", ctrl_base);
 	/* set base address in i2c_data structure */
 	i2c_data->base = ctrl_base;
 

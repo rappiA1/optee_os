@@ -27,6 +27,7 @@ static struct bcm2835_i2c_data i2c_data;
  */
 static TEE_Result init_controller(void)
 {
+	EMSG("Inside init_controller\n");
 	return i2c_init(&i2c_data);
 }
 
@@ -42,6 +43,7 @@ static TEE_Result init_controller(void)
  */
 static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_PARAMS])
 {
+	EMSG("Inside read_from EEPROM\n");
 	if (paramTypes !=
 			TEE_PARAM_TYPES(
 				TEE_PARAM_TYPE_MEMREF_INPUT,
@@ -82,6 +84,7 @@ static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM
 static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_PARAMS])
 
 {
+//	EMSG("In write_to_eeprom\n");
 	if (paramTypes !=
 			TEE_PARAM_TYPES(
 				TEE_PARAM_TYPE_MEMREF_INPUT,
@@ -115,6 +118,7 @@ static TEE_Result invoke_command(void *psess __unused, uint32_t cmd,
 		uint32_t ptypes,
 		TEE_Param params[TEE_NUM_PARAMS])
 {
+	EMSG("Inside invoke_command\n");
 	switch(cmd){
 		case PTA_CMD_READ:
 		       	return read_from_eeprom(ptypes, params);

@@ -28,6 +28,7 @@
 
 #include <console.h>
 #include <drivers/serial8250_uart.h>
+#include <drivers/rpi3_i2c.h>
 #include <kernel/panic.h>
 #include <mm/core_memprot.h>
 #include <mm/tee_pager.h>
@@ -36,6 +37,8 @@
 
 register_phys_mem_pgdir(MEM_AREA_IO_NSEC,
 			CONSOLE_UART_BASE, SERIAL8250_UART_REG_SIZE);
+register_phys_mem_pgdir(MEM_AREA_IO_NSEC,
+			BSC0_BASE, BSC0_REG_SIZE);
 
 static struct serial8250_uart_data console_data;
 

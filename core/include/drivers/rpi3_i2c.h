@@ -13,7 +13,14 @@
 /*
  * base address of the BSC0 controller on BCM2835
  */
-#define BSC0_BASE U(0xf220500)
+#define BSC0_BASE U(0x3f205000)
+
+/*
+ * defines the amount of memory to map into the 
+ * secure world. BSC has 8 registers a 4 bytes, so
+ * 32 Bytes.
+ */
+#define BSC0_REG_SIZE U(0x20)
 
 /* 
  * I2C Enable
