@@ -27,7 +27,7 @@ static struct bcm2835_i2c_data i2c_data;
  */
 static TEE_Result init_controller(void)
 {
-	EMSG("Inside init_controller\n");
+	DMSG("Inside init_controller\n");
 	return i2c_init(&i2c_data);
 }
 
@@ -43,7 +43,7 @@ static TEE_Result init_controller(void)
  */
 static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_PARAMS])
 {
-	EMSG("Inside read_from EEPROM\n");
+	DMSG("Inside read_from EEPROM\n");
 	if (paramTypes !=
 			TEE_PARAM_TYPES(
 				TEE_PARAM_TYPE_MEMREF_INPUT,
@@ -54,24 +54,28 @@ static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 	TEE_Result res;
-	struct i2c_operation operation;
+	struct i2c_operation operation[2];
 
-	/* write the address we want to read from to the EEPROM -> see 24LC256 documentation */
-	operation.flags = I2C_FLAG_WRITE;
-	operation.length_in_bytes = params[0].memref.size;
-	operation.buffer = params[0].memref.buffer;
+	/* check pointers */
+	if (params[0].memref.buffer == NULL || params[1].memref.buffer == NULL){
+		EMSG("NULLPOINTER error in PTA in read_from_EEPROM");
+		return TEE_ERROR_BAD_PARAMETERS;
+	}
 
-	res = i2c_bus_xfer(i2c_data.base, params[2].value.a, &operation, 1);
 
-	if (res != 0)
-		return res;
 
-	/* Perform read operation on EEPROM */
-	operation.flags = I2C_FLAG_READ;
-	operation.length_in_bytes = params[1].memref.size;
-	operation.buffer = params[1].memref.buffer;
+// first operation writes the address we want to read from to the EEPROM -> see 24LC256 documentation 
+	operation[0].flags = I2C_FLAG_WRITE;
+	operation[0].length_in_bytes = params[0].memref.size;
+	operation[0].buffer = params[0].memref.buffer;
 
-	return i2c_bus_xfer(i2c_data.base, params[2].value.a, &operation, 1);
+	// Perform read operation on EEPROM 
+	operation[1].flags = I2C_FLAG_READ;
+	operation[1].length_in_bytes = params[1].memref.size;
+	operation[1].buffer = params[1].memref.buffer;
+
+	return i2c_bus_xfer(i2c_data.base, params[2].value.a, operation, 2);
+
 }
 
 /*
@@ -84,7 +88,7 @@ static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM
 static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_PARAMS])
 
 {
-//	EMSG("In write_to_eeprom\n");
+//	DMSG("In write_to_eeprom\n");
 	if (paramTypes !=
 			TEE_PARAM_TYPES(
 				TEE_PARAM_TYPE_MEMREF_INPUT,
@@ -98,6 +102,11 @@ static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_
 	struct i2c_operation operation;
 	operation.flags = I2C_FLAG_WRITE;
 	operation.length_in_bytes = params[0].memref.size;
+
+	if (params[0].memref.buffer == NULL){
+		EMSG("NULLPOINTER error in PTA in write_to_EEPROM");
+		return TEE_ERROR_BAD_PARAMETERS;
+	}
 
 	/* The buffer contains the Data and the address onto which we write on the EEPROM */
 	operation.buffer = params[0].memref.buffer;
@@ -118,7 +127,7 @@ static TEE_Result invoke_command(void *psess __unused, uint32_t cmd,
 		uint32_t ptypes,
 		TEE_Param params[TEE_NUM_PARAMS])
 {
-	EMSG("Inside invoke_command\n");
+	DMSG("Inside invoke_command\n");
 	switch(cmd){
 		case PTA_CMD_READ:
 		       	return read_from_eeprom(ptypes, params);

@@ -5,6 +5,7 @@
  * Author: Raphael Andree
  *
  */
+
 #include <assert.h>
 #include <drivers/rpi3_i2c.h>
 #include <io.h>
@@ -37,7 +38,7 @@ void i2c_reset(vaddr_t base)
  */
 TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 {
-	EMSG("Inside i2c_init\n");
+	DMSG("Inside i2c_init\n");
 	/* 
 	 * searching BSC base address in device tree omitted, use hardcoded
 	 * BSC0 base address for now.
@@ -116,7 +117,7 @@ static void i2c_drain_rxfifo(struct i2c_regs *regs,
 		 * BCM 2835 uses little endian and the LSB (lower 8 bits) which contains the 
 		 * data is read first, the rest of the DATA register are zeroes.
 		 */
-		*i2c_operation->buffer = io_read32(regs->i2c_fifo);
+		*i2c_operation->buffer = io_read32((vaddr_t)&regs->i2c_fifo);
 
 		/* increment buffer pointer by one byte, decrease the number of bytes to be read. */
 		i2c_operation->buffer++;
@@ -155,7 +156,7 @@ static TEE_Result i2c_write(uint32_t c_reg_flags, struct i2c_regs *regs,
 		}
 		else if (s_reg & I2C_S_DONE){
 			/* reset done flag */
-			io_clrbits32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
+			io_setbits32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
 			return TEE_SUCCESS;
 		}
 		else if (s_reg & I2C_S_ERR){
@@ -205,7 +206,7 @@ static TEE_Result i2c_read(uint32_t c_reg_flags, struct i2c_regs *regs,
 			i2c_drain_rxfifo(regs, i2c_operation);
 
 			/* reset done flag */
-			io_clrbits32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
+			io_setbits32((vaddr_t)&regs->i2c_s, I2C_S_DONE);
 			return TEE_SUCCESS;
 		}
 		/* check for ACK error */
@@ -240,6 +241,13 @@ TEE_Result i2c_bus_xfer(vaddr_t base, uint32_t slave_address,
 			struct i2c_operation *i2c_operation,
 			unsigned int operation_count)
 {
+	/* check for nullpointers */
+	if (base == NULL || i2c_operation == NULL){
+		EMSG("NULLPOINTER error in i2c_bus_xfer");
+		return TEE_ERROR_BAD_PARAMETERS;
+	}
+
+
 	unsigned int n = 0;
 	struct i2c_regs *regs = (struct i2c_regs *)base;
 	struct i2c_operation *operation = NULL;
@@ -249,7 +257,7 @@ TEE_Result i2c_bus_xfer(vaddr_t base, uint32_t slave_address,
 	for (n = 0, operation = i2c_operation;
 			n < (operation_count - 1); n++, operation++){
 		if (operation->flags & I2C_FLAG_READ){
-			EMSG("Only one read message supported, has to be last.");
+			DMSG("Only one read message supported, has to be last.");
 			goto out;
 		}
 	}
@@ -257,7 +265,13 @@ TEE_Result i2c_bus_xfer(vaddr_t base, uint32_t slave_address,
 	/* go through all operation structs in the array and do the transfers */
 	for (n = 0, operation = i2c_operation;
 			n < operation_count; n++, operation++){
-	
+
+		/* check for nullpointers */
+		if (i2c_operation->buffer == NULL){
+			EMSG("NULLPOINTER error in i2c_bus_xfer");
+			return TEE_ERROR_BAD_PARAMETERS;
+		}
+
 		/* read/write data */
 		res = i2c_start_transfer(regs, operation, slave_address);
 		if (res)
@@ -269,3 +283,4 @@ out:
 
 	return res;
 }
+

@@ -11,9 +11,9 @@
 #include <tee_api_types.h>
 
 /*
- * base address of the BSC0 controller on BCM2835
+ * base address of the BSC1 controller on BCM2835
  */
-#define BSC0_BASE U(0x3f205000)
+#define BSC0_BASE U(0x3f804000)
 
 /*
  * defines the amount of memory to map into the 
@@ -122,7 +122,7 @@ struct i2c_operation {
 	 * Number of bytes to send or receive from the I2C device. A ping
 	 * is indicated by setting the length_in_bytes to zero
 	 */
-	unsigned int length_in_bytes;
+	uint32_t length_in_bytes;
 
 	/*
 	 * pointer to an array that can hold 8 bit data elements,
