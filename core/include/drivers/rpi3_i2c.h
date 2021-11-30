@@ -17,52 +17,53 @@
 
 /*
  * defines the amount of memory to map into the 
- * secure world. BSC has 8 registers a 4 bytes, so
+ * secure world. BSC has 8 registers à 4 bytes, so
  * 32 Bytes.
  */
 #define BSC0_REG_SIZE U(0x20)
-
-/* 
- * I2C Enable
- * 0 - BSC controller disabled.
- * 1 - BSC controller enabled.
- */
-#define I2C_C_I2CEN U(0x00008000)
-
-/*
- * Interrupt on RX
- * 0 - Don't generate interrupts on RXR
- * 1 - Generate interrupt while rxr= 1
- */
-#define I2C_C_INTR U(0x00000400)
-
-/*
- * Interrupt on TX
- * 0 - Don't generate interrupts on TXW condition
- * 1 - Generate interrupt while TXW = 1
- */
-#define I2C_C_INTT U(0x00000200)
-
-/*
- * Interrupt on DONE
- * 0 - Don't generate interrupts on DONE
- * 1 - Generate interrupts while DONE = 1
- */
-#define I2C_C_INTD U(0x00000080)
-
-/*
- * ST Start Transfer
- * 0 - No action
- * 1 - Start a new transfer
- */
-#define I2C_C_ST U(0x00000080)
 
 /*
  * READ read transfer
  * 0 - Write Packet transfer
  * 1 - Read Packet transfer
  */
-#define I2C_C_READ U(0x00000001)
+#define I2C_C_READ BIT(0)
+
+/*
+ * ST Start Transfer
+ * 0 - No action
+ * 1 - Start a new transfer
+ */
+#define I2C_C_ST BIT(7)
+
+/*
+ * Interrupt on DONE
+ * 0 - Don't generate interrupts on DONE
+ * 1 - Generate interrupts while DONE = 1
+ */
+#define I2C_C_INTD BIT(8)
+
+/*
+ * Interrupt on TX
+ * 0 - Don't generate interrupts on TXW condition
+ * 1 - Generate interrupt while TXW = 1
+ */
+#define I2C_C_INTT BIT(9)
+
+/*
+ * Interrupt on RX
+ * 0 - Don't generate interrupts on RXR
+ * 1 - Generate interrupt while rxr= 1
+ */
+#define I2C_C_INTR BIT(10)
+
+/* 
+ * I2C Enable
+ * 0 - BSC controller disabled.
+ * 1 - BSC controller enabled.
+ */
+#define I2C_C_I2CEN BIT(15)
+
 
 /* BSC status register bits, more info in bcm2835 peripherals documentation */
 #define I2C_S_CLKT U(0x00000200)

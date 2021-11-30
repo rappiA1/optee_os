@@ -38,6 +38,8 @@ void i2c_reset(vaddr_t base)
  */
 TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 {
+	struct i2c_regs *regs;
+
 	DMSG("Inside i2c_init\n");
 	/* 
 	 * searching BSC base address in device tree omitted, use hardcoded
@@ -52,7 +54,9 @@ TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 	/* set base address in i2c_data structure */
 	i2c_data->base = ctrl_base;
 
-	/* clock divisor register is by default set to 0 which results in a 100 kHz I2C clock frequency */
+	/* Set clock frequency to 400 kHz by setting clock divider to 0x09C4 */
+	regs = ctrl_base;
+	io_write32((vaddr_t)&regs->i2c_div, 2500);
 
 	/* reset control and status registers */
 	i2c_reset(ctrl_base);
