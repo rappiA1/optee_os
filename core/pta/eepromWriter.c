@@ -53,7 +53,6 @@ static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM
 	{
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
-	TEE_Result res;
 	struct i2c_operation operation[2];
 
 	/* check pointers */
@@ -100,16 +99,20 @@ static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_
 	}
 
 	struct i2c_operation operation;
-	operation.flags = I2C_FLAG_WRITE;
-	operation.length_in_bytes = params[0].memref.size;
-
+	
+	/* check pointers */
 	if (params[0].memref.buffer == NULL){
 		EMSG("NULLPOINTER error in PTA in write_to_EEPROM");
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
+	operation.flags = I2C_FLAG_WRITE;
+	operation.length_in_bytes = params[0].memref.size;
+
 	/* The buffer contains the Data and the address onto which we write on the EEPROM */
 	operation.buffer = params[0].memref.buffer;
+
+	DMSG("write operation buffer %x%x%x", *(char*)operation.buffer, *((char*)operation.buffer+1), *((char*)operation.buffer+2));
 
 	/*
 	 * Perform write operation.
