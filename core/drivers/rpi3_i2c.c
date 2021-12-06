@@ -44,8 +44,7 @@ TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 	/* 
 	 * searching BSC base address in device tree omitted, use hardcoded
 	 * BSC0 base address for now.
-	 * does dt_map_dev has to be called?, normally mapping is done 
-	 * automatically.
+	 * Physical base address gets translated into virtual base address.
 	 */
 	struct io_pa_va base_reg = { .pa = BSC0_BASE };
 	DMSG("%x\n", BSC0_BASE);
@@ -54,9 +53,21 @@ TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 	/* set base address in i2c_data structure */
 	i2c_data->base = ctrl_base;
 
+	/* translate gpio function select 0 register base address to
+	 * optee virtual address */
+	struct io_pa_va gpio_fsel0 = {.pa = 0x3f200000 };
+	DMSG("Original function select 0 address: %x", gpio_fsel0.pa);
+	/* map four bytes into OP-TEE memory */
+	vaddr_t fsel0_base = io_pa_or_va(&gpio_fsel0, 4);
+
+	/* set gpio pins 2 and 3 to alternative function 0, see bcm2835 arm peripherals docu */
+	io_setbits32(fsel0_base, 0x00000900);
+	
 	/* Set clock frequency to 400 kHz by setting clock divider to 0x09C4 */
 	regs = ctrl_base;
 	io_write32((vaddr_t)&regs->i2c_div, 2500);
+
+	io_write32((vaddr_t)&regs->i2c_c, 0);
 
 	/* reset control and status registers */
 	i2c_reset(ctrl_base);
