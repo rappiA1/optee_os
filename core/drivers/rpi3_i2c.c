@@ -18,6 +18,8 @@
 
 /*
  * Reset all register values in status and control register and disable i2c controller.
+ *
+ * base		BSC0 base address
  */
 void i2c_reset(vaddr_t base)
 {
@@ -35,38 +37,39 @@ void i2c_reset(vaddr_t base)
 
 /*
  * set i2c device base address, reset status and control registers
+ *
+ * i2c_data		pointer to an i2c_data struct
  */
 TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 {
 	struct i2c_regs *regs;
 
-	DMSG("Inside i2c_init\n");
 	/* 
-	 * searching BSC base address in device tree omitted, use hardcoded
-	 * BSC0 base address for now.
-	 * Physical base address gets translated into virtual base address.
+	 * Map physical BSC0 base address into the virtual address space.
 	 */
 	struct io_pa_va base_reg = { .pa = BSC0_BASE };
-	DMSG("%x\n", BSC0_BASE);
 	vaddr_t ctrl_base = io_pa_or_va(&base_reg, 32); 
-	DMSG("mapped address%x\n", ctrl_base);
 	/* set base address in i2c_data structure */
 	i2c_data->base = ctrl_base;
 
 	/* translate gpio function select 0 register base address to
-	 * optee virtual address */
+	 * optee virtual address 
+	 */
 	struct io_pa_va gpio_fsel0 = {.pa = 0x3f200000 };
-	DMSG("Original function select 0 address: %x", gpio_fsel0.pa);
 	/* map four bytes into OP-TEE memory */
 	vaddr_t fsel0_base = io_pa_or_va(&gpio_fsel0, 4);
 
-	/* set gpio pins 2 and 3 to alternative function 0, see bcm2835 arm peripherals docu */
+	/* 
+	 * set gpio pins 2 and 3 to alternative function 0,
+	 * for definition see bcm2835 arm peripherals documentation
+	 */
 	io_setbits32(fsel0_base, 0x00000900);
 	
 	/* Set clock frequency to 400 kHz by setting clock divider to 0x09C4 */
 	regs = ctrl_base;
 	io_write32((vaddr_t)&regs->i2c_div, 2500);
 
+	/* clear control register */
 	io_write32((vaddr_t)&regs->i2c_c, 0);
 
 	/* reset control and status registers */
@@ -77,6 +80,7 @@ TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 	
 /*
  * Generate Stop Signal and disable I2C controller.
+ *
  * regs		pointer to I2c controller registers
  */
 static TEE_Result i2c_stop(struct i2c_regs *regs)
@@ -87,7 +91,12 @@ static TEE_Result i2c_stop(struct i2c_regs *regs)
 	return TEE_SUCCESS;
 }
 
-
+/*
+ * fills up the write fifo for writing
+ *
+ * regs			pointer to the BSC 0 registers
+ * i2c_operation	contains  write buffer and transfer info
+ */
 static void i2c_fill_txfifo(struct i2c_regs *regs,
 		struct i2c_operation *i2c_operation)
 {
@@ -103,14 +112,19 @@ static void i2c_fill_txfifo(struct i2c_regs *regs,
 		/* write 8 bit value from buffer into fifo. */
 		io_write32((vaddr_t)&regs->i2c_fifo, *i2c_operation->buffer);
 
-		/* increment pointer buffer by one byte, decrease the number of bytes to be read */
+		/* 
+		 * increment pointer buffer by one byte, decrease
+		 * the number of bytes to be read 
+		 */
 		i2c_operation->buffer++;
 		i2c_operation->length_in_bytes--;
 	}
 }
 
 /* 
- * reads all data currently in the FIFO into the buffer of the i2c_operation object.
+ * reads all data currently in the FIFO into the buffer of the
+ * i2c_operation object.
+ *
  * i2c_regs		struct that maps the register addresses.
  * i2c_operation	the operation object that contains operation info and buffer.
  */
@@ -128,18 +142,25 @@ static void i2c_drain_rxfifo(struct i2c_regs *regs,
 		if (!(val & I2C_S_RXD))
 			break;
 			
-		/* Write 32-bit value into array of 8 bit values, this works because the
-		 * BCM 2835 uses little endian and the LSB (lower 8 bits) which contains the 
-		 * data is read first, the rest of the DATA register are zeroes.
-		 */
 		*i2c_operation->buffer = io_read32((vaddr_t)&regs->i2c_fifo);
 
-		/* increment buffer pointer by one byte, decrease the number of bytes to be read. */
+		/*
+		 * increment buffer pointer by one byte, decrease 
+		 * the number of bytes to be read. 
+		 */
 		i2c_operation->buffer++;
 		i2c_operation->length_in_bytes--;
 	}
 }
 
+/*
+ * performs a write operation on the EEPROM.
+ *
+ * c_reg_flags		32-Bit value the control register will be set to
+ * regs			pointer to i2c registers
+ * operation		contains buffer and operation info
+ * slave_address	i2c address of the EEPROM
+ */
 static TEE_Result i2c_write(uint32_t c_reg_flags, struct i2c_regs *regs,
 		struct i2c_operation *i2c_operation,
 		unsigned int slave_address)
@@ -158,7 +179,8 @@ static TEE_Result i2c_write(uint32_t c_reg_flags, struct i2c_regs *regs,
 	/* activate BSC, start transfer */
 	io_setbits32((vaddr_t)&regs->i2c_c, c_reg_flags);
 
-	/* do polling on TXW and DONE in status register to check if you
+	/* 
+	 * Do polling on TXW and DONE in status register to check if you
 	 * need to write to the fifo.
 	 */
 	while (1){
@@ -166,7 +188,6 @@ static TEE_Result i2c_write(uint32_t c_reg_flags, struct i2c_regs *regs,
 
 		/* if fifo needs writing */
 		if (s_reg & I2C_S_TXW){
-			// can do error checking for the case that TXW is set but there is nothing to be written.
 			i2c_fill_txfifo(regs, i2c_operation);
 		}
 		else if (s_reg & I2C_S_DONE){
@@ -187,7 +208,7 @@ static TEE_Result i2c_write(uint32_t c_reg_flags, struct i2c_regs *regs,
  * c_reg_flags		Control register flags for activating BSC and read mode
  * regs			Struct that points to the BSC registers.
  * i2c_operation	Operation struct that contains the buffer to be written to
- * slave_address	Address of the I2C slave
+ * slave_address	Address of the I2C slave (EEPROM)
  */
 static TEE_Result i2c_read(uint32_t c_reg_flags, struct i2c_regs *regs,
 		struct i2c_operation *i2c_operation,
@@ -235,7 +256,7 @@ static TEE_Result i2c_read(uint32_t c_reg_flags, struct i2c_regs *regs,
  * Sets the needed bits and starts a transfer.
  * regs			pointer to I2C controller registers
  * i2c_operation	pointer to I2C operation struct
- * slave_address	address of I2C slave.
+ * slave_address	address of I2C slave (EEPROM)
  */
 static TEE_Result i2c_start_transfer(struct i2c_regs *regs,
 		struct i2c_operation *i2c_operation,
@@ -251,12 +272,15 @@ static TEE_Result i2c_start_transfer(struct i2c_regs *regs,
 
 /*
  * transfer data to/from the I2C slave device.
+ *
+ * base			BSC0 base address
+ * slave_address	i2c address of EEPROM
+ * operation_count	number of read/write operations to be performed
  */
 TEE_Result i2c_bus_xfer(vaddr_t base, uint32_t slave_address,
 			struct i2c_operation *i2c_operation,
 			unsigned int operation_count)
 {
-	/* check for nullpointers */
 	if (base == NULL || i2c_operation == NULL){
 		EMSG("NULLPOINTER error in i2c_bus_xfer");
 		return TEE_ERROR_BAD_PARAMETERS;
@@ -281,7 +305,6 @@ TEE_Result i2c_bus_xfer(vaddr_t base, uint32_t slave_address,
 	for (n = 0, operation = i2c_operation;
 			n < operation_count; n++, operation++){
 
-		/* check for nullpointers */
 		if (i2c_operation->buffer == NULL){
 			EMSG("NULLPOINTER error in i2c_bus_xfer");
 			return TEE_ERROR_BAD_PARAMETERS;

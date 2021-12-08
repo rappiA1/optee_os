@@ -15,6 +15,7 @@
 #define PTA_CMD_WRITE	1
 #define PTA_CMD_INIT	2
 
+/* EEPROMWriter UUID */
 #define EPW_UUID \
 	{0x2b6ea7b2, 0xaf6a, 0x4387, \
 		{0xaa, 0xa7, 0x4c, 0xef, 0xcc, 0x4a, 0xfc, 0xbd}}
@@ -27,7 +28,6 @@ static struct bcm2835_i2c_data i2c_data;
  */
 static TEE_Result init_controller(void)
 {
-	DMSG("Inside init_controller\n");
 	return i2c_init(&i2c_data);
 }
 
@@ -35,6 +35,7 @@ static TEE_Result init_controller(void)
 /* 
  * Performs a random read on the EEPROM.
  *
+ * paramTypes		Defines type of the array elements of params
  * params[0]		Pointer to memory which contains the memory address of which 
  *			to be read from the EEPROM
  * params[1]		Pointer to a buffer into which the memory content of the EEPROM
@@ -43,7 +44,6 @@ static TEE_Result init_controller(void)
  */
 static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_PARAMS])
 {
-	DMSG("Inside read_from EEPROM\n");
 	if (paramTypes !=
 			TEE_PARAM_TYPES(
 				TEE_PARAM_TYPE_MEMREF_INPUT,
@@ -61,20 +61,17 @@ static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
-
-
-// first operation writes the address we want to read from to the EEPROM -> see 24LC256 documentation 
+	/* write address we want to read from EEPROM to EEPROM */
 	operation[0].flags = I2C_FLAG_WRITE;
 	operation[0].length_in_bytes = params[0].memref.size;
 	operation[0].buffer = params[0].memref.buffer;
 
-	// Perform read operation on EEPROM 
+	/* Perform read operation on EEPROM */
 	operation[1].flags = I2C_FLAG_READ;
 	operation[1].length_in_bytes = params[1].memref.size;
 	operation[1].buffer = params[1].memref.buffer;
 
 	return i2c_bus_xfer(i2c_data.base, params[2].value.a, operation, 2);
-
 }
 
 /*
@@ -87,7 +84,6 @@ static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM
 static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_PARAMS])
 
 {
-//	DMSG("In write_to_eeprom\n");
 	if (paramTypes !=
 			TEE_PARAM_TYPES(
 				TEE_PARAM_TYPE_MEMREF_INPUT,
@@ -112,12 +108,8 @@ static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_
 	/* The buffer contains the Data and the address onto which we write on the EEPROM */
 	operation.buffer = params[0].memref.buffer;
 
-	DMSG("write operation buffer %x%x%x", *(char*)operation.buffer, *((char*)operation.buffer+1), *((char*)operation.buffer+2));
-
 	/*
 	 * Perform write operation.
-	 * 	 
-	 * for now only we perform only one operation -> hardcoded
 	 */
 	return i2c_bus_xfer(i2c_data.base, params[1].value.a, &operation, 1);
 }
@@ -125,12 +117,15 @@ static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_
 
 /*
  * Redirects the command from the Client Application to the correct function
+ *
+ * cmd		32-Bit integer which defines the operation to be executed
+ * ptypes	Parameter types of the params array values
+ * params	Parameters from the secure world	
  */
 static TEE_Result invoke_command(void *psess __unused, uint32_t cmd,
 		uint32_t ptypes,
 		TEE_Param params[TEE_NUM_PARAMS])
 {
-	DMSG("Inside invoke_command\n");
 	switch(cmd){
 		case PTA_CMD_READ:
 		       	return read_from_eeprom(ptypes, params);
