@@ -16,6 +16,8 @@
 #include <mm/core_memprot.h>
 #include <string.h>
 
+static vaddr_t fsel0_base;
+
 /*
  * Reset all register values in status and control register and disable i2c controller.
  *
@@ -27,12 +29,18 @@ void i2c_reset(vaddr_t base)
 
 	/* disable BSC module */
 	io_clrbits32((vaddr_t)&regs->i2c_c, I2C_C_I2CEN);
-	
+
 	/* clear all interrupt configuration in control register. */
-	io_clrbits32((vaddr_t)&regs->i2c_c, I2C_C_INTR | I2C_C_INTT | I2C_C_INTD);
+//	io_clrbits32((vaddr_t)&regs->i2c_c, I2C_C_INTR | I2C_C_INTT | I2C_C_INTD);	
+
+	/* clear all control register configuration. */
+	io_write32((vaddr_t)&regs->i2c_c, 0);
 
 	/* reset potentially set bits in status register */
 	io_setbits32((vaddr_t)&regs->i2c_s, I2C_S_CLKT | I2C_S_ERR | I2C_S_DONE);                                                
+
+	/* Set clock frequency to 400 kHz by setting clock divider to 0x09C4 */
+	io_write32((vaddr_t)&regs->i2c_div, 2500);
 }
 
 /*
@@ -42,8 +50,6 @@ void i2c_reset(vaddr_t base)
  */
 TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 {
-	struct i2c_regs *regs;
-
 	/* 
 	 * Map physical BSC0 base address into the virtual address space.
 	 */
@@ -52,12 +58,13 @@ TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 	/* set base address in i2c_data structure */
 	i2c_data->base = ctrl_base;
 
-	/* translate gpio function select 0 register base address to
+	/* 
+	 * translate gpio function select 0 register base address to
 	 * optee virtual address 
 	 */
 	struct io_pa_va gpio_fsel0 = {.pa = 0x3f200000 };
 	/* map four bytes into OP-TEE memory */
-	vaddr_t fsel0_base = io_pa_or_va(&gpio_fsel0, 4);
+	fsel0_base = io_pa_or_va(&gpio_fsel0, 4);
 
 	/* 
 	 * set gpio pins 2 and 3 to alternative function 0,
@@ -65,19 +72,12 @@ TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 	 */
 	io_setbits32(fsel0_base, 0x00000900);
 	
-	/* Set clock frequency to 400 kHz by setting clock divider to 0x09C4 */
-	regs = ctrl_base;
-	io_write32((vaddr_t)&regs->i2c_div, 2500);
-
-	/* clear control register */
-	io_write32((vaddr_t)&regs->i2c_c, 0);
-
-	/* reset control and status registers */
+	/* reset BSC Registers */
 	i2c_reset(ctrl_base);
 
 	return TEE_SUCCESS;
 }
-	
+
 /*
  * Generate Stop Signal and disable I2C controller.
  *
@@ -281,7 +281,7 @@ TEE_Result i2c_bus_xfer(vaddr_t base, uint32_t slave_address,
 			struct i2c_operation *i2c_operation,
 			unsigned int operation_count)
 {
-	if (base == NULL || i2c_operation == NULL){
+	if (!base || !i2c_operation){
 		EMSG("NULLPOINTER error in i2c_bus_xfer");
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
