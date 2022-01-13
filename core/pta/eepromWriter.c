@@ -165,8 +165,8 @@ static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_
 		databuffer += EEPROM_PAGE_DEFAULT_SIZE;
 		eepromAddress += EEPROM_PAGE_DEFAULT_SIZE;
 
-		/* small 100ms delay for the i2c Controller to process */
-		udelay(100000);
+		/* wait 5ms write cycle time for the EEPROM to process */
+		udelay(5000);
 	}
 
 	if (page_offset > 0){
@@ -190,7 +190,6 @@ static TEE_Result write_to_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM_
 		 * Perform write operation.
 		 */
 		res = i2c_bus_xfer(i2c_data.base, params[1].value.a, &operation, 1);
-		DMSG("RES Later, %d", res);
 		return res;
 	}
 	return TEE_SUCCESS;
