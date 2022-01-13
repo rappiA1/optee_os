@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 /*
- * I2C driver for BCM 2835 and similar
+ * OP-TEE I2C driver for BCM 2835 and similar
  *
  * Author: Raphael Andree
  *
@@ -16,12 +16,11 @@
 #include <mm/core_memprot.h>
 #include <string.h>
 
-static vaddr_t fsel0_base;
 
 /*
  * Reset all register values in status and control register and disable i2c controller.
  *
- * base		BSC0 base address
+ * base		BSC1 base address
  */
 void i2c_reset(vaddr_t base)
 {
@@ -50,10 +49,12 @@ void i2c_reset(vaddr_t base)
  */
 TEE_Result i2c_init(struct bcm2835_i2c_data *i2c_data)
 {
+	vaddr_t fsel0_base;
+
 	/* 
-	 * Map physical BSC0 base address into the virtual address space.
+	 * Map physical BSC0 base address into the optee virtual address space.
 	 */
-	struct io_pa_va base_reg = { .pa = BSC0_BASE };
+	struct io_pa_va base_reg = { .pa = BSC1_BASE };
 	vaddr_t ctrl_base = io_pa_or_va(&base_reg, 32); 
 	/* set base address in i2c_data structure */
 	i2c_data->base = ctrl_base;
@@ -273,7 +274,7 @@ static TEE_Result i2c_start_transfer(struct i2c_regs *regs,
 /*
  * transfer data to/from the I2C slave device.
  *
- * base			BSC0 base address
+ * base			BSC1 base address
  * slave_address	i2c address of EEPROM
  * operation_count	number of read/write operations to be performed
  */

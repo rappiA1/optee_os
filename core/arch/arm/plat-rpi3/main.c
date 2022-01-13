@@ -38,7 +38,7 @@
 register_phys_mem_pgdir(MEM_AREA_IO_NSEC,
 			CONSOLE_UART_BASE, SERIAL8250_UART_REG_SIZE);
 register_phys_mem_pgdir(MEM_AREA_IO_NSEC,
-			BSC0_BASE, BSC0_REG_SIZE);
+			BSC1_BASE, BSC0_REG_SIZE);
 //GPIO function select 0 register
 register_phys_mem_pgdir(MEM_AREA_IO_NSEC,
 			0x3f102000, 4);

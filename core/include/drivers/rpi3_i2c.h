@@ -13,7 +13,7 @@
 /*
  * base address of the BSC1 controller on BCM2835
  */
-#define BSC0_BASE U(0x3f804000)
+#define BSC1_BASE U(0x3f804000)
 
 /*
  * defines the amount of memory to map into the 
