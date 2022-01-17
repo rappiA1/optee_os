@@ -75,7 +75,7 @@ static TEE_Result read_from_eeprom(uint32_t paramTypes, TEE_Param params[TEE_NUM
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
-	eepromAddress = params[2].value.b; 
+	eepromAddress = params[1].value.b; 
 	int2charArr(addrbuf, eepromAddress);
 
 	/* write address we want to read from EEPROM to EEPROM */
